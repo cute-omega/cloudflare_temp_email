@@ -23,7 +23,7 @@
     "@aws-sdk/client-s3": "^3.658.1",
     "@aws-sdk/s3-request-presigner": "^3.658.1",
     "@simplewebauthn/server": "^10.0.1",
-    "hono": "^4.6.3",
+    "hono": "^4.6.5",
     "mimetext": "^3.0.24",
     "postal-mime": "^2.3.2",
     "resend": "^3.5.0",
