@@ -100,7 +100,9 @@ class CustomSMTPHandler:
             "is_html": body["type"] == "text/html",
             "content": body["value"],
         }
-        _logger.info(f"Send mail {dict(send_body, token='***')}")
+        _logger.info(
+            f"Send mail from {from_name}<{envelope.mail_from}> to {to_mail_map.get(to_mail)}<{to_mail}> subject='{send_body['subject']}' is_html={send_body['is_html']}"
+        )
         try:
             res = httpx.post(
                 f"{settings.proxy_url}/external/api/send_mail",
