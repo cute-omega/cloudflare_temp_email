@@ -31,7 +31,7 @@ export const getJsonSetting = async <T = any>(
     try {
         return JSON.parse(value) as T;
     } catch (e) {
-        console.error(`GetJsonSetting: Failed to parse ${key}`, e);
+        console.error("GetJsonSetting: Failed to parse setting value", e);
     }
     return null;
 }
