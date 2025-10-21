@@ -89,6 +89,7 @@ class CustomSMTPHandler:
             to_mail_map[tmp_to_mail] = tmp_to_name
         _logger.info(f"Parsed mail from {from_name} to {to_mail_map}")
         # Send mail
+        # WARNING: 'send_body' contains sensitive data ("token"/password).
         send_body = {
             "token": session.auth_data.password.decode(),
             "from_name": from_name,
