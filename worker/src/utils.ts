@@ -45,7 +45,7 @@ export const getSetting = async (
         ).bind(key).first<string>("value");
         return value;
     } catch (error) {
-        console.error(`GetSetting: Failed to get ${key}`, error);
+        console.error("GetSetting: Failed to get setting", error);
     }
     return null;
 }
