@@ -89,6 +89,7 @@ class CustomSMTPHandler:
             to_mail_map[tmp_to_mail] = tmp_to_name
         _logger.info(f"Parsed mail from {from_name} to {to_mail_map}")
         # Send mail
+        # WARNING: 'send_body' contains sensitive data ("token"/password).
         send_body = {
             "token": session.auth_data.password.decode(),
             "from_name": from_name,
@@ -100,7 +101,9 @@ class CustomSMTPHandler:
             "is_html": body["type"] == "text/html",
             "content": body["value"],
         }
-        _logger.info(f"Send mail {dict(send_body, token='***')}")
+        _logger.info(
+            f"Send mail from {from_name}<{envelope.mail_from}> to {to_mail_map.get(to_mail)}<{to_mail}> subject='{send_body['subject']}' is_html={send_body['is_html']}"
+        )
         try:
             res = httpx.post(
                 f"{settings.proxy_url}/external/api/send_mail",
