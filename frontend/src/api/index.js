@@ -1,5 +1,8 @@
 import { useGlobalState } from '../store'
+import { h } from 'vue'
 import axios from 'axios'
+
+import i18n from '../i18n'
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 const {
@@ -21,7 +24,8 @@ const apiFetch = async (path, options = {}) => {
             method: options.method || 'GET',
             data: options.body || null,
             headers: {
-                'x-user-token': userJwt.value,
+                'x-lang': i18n.global.locale.value,
+                'x-user-token': options.userJwt || userJwt.value,
                 'x-user-access-token': userSettings.value.access_token,
                 'x-custom-auth': auth.value,
                 'x-admin-auth': adminAuth.value,
@@ -31,14 +35,12 @@ const apiFetch = async (path, options = {}) => {
         });
         if (response.status === 401 && path.startsWith("/admin")) {
             showAdminAuth.value = true;
-            throw new Error("Unauthorized, your admin password is wrong")
         }
         if (response.status === 401 && openSettings.value.auth) {
             showAuth.value = true;
-            throw new Error("Unauthorized, you access password is wrong")
         }
         if (response.status >= 300) {
-            throw new Error(`${response.status} ${response.data}` || "error");
+            throw new Error(`[${response.status}]: ${response.data}` || "error");
         }
         const data = response.data;
         return data;
@@ -52,7 +54,7 @@ const apiFetch = async (path, options = {}) => {
     }
 }
 
-const getOpenSettings = async (message) => {
+const getOpenSettings = async (message, notification) => {
     try {
         const res = await api.fetch("/open_api/settings");
         const domainLabels = res["domainLabels"] || [];
@@ -75,6 +77,8 @@ const getOpenSettings = async (message) => {
             }),
             adminContact: res["adminContact"] || "",
             enableUserCreateEmail: res["enableUserCreateEmail"] || false,
+            disableAnonymousUserCreateEmail: res["disableAnonymousUserCreateEmail"] || false,
+            disableCustomAddressName: res["disableCustomAddressName"] || false,
             enableUserDeleteEmail: res["enableUserDeleteEmail"] || false,
             enableAutoReply: res["enableAutoReply"] || false,
             enableIndexAbout: res["enableIndexAbout"] || false,
@@ -82,16 +86,23 @@ const getOpenSettings = async (message) => {
             cfTurnstileSiteKey: res["cfTurnstileSiteKey"] || "",
             enableWebhook: res["enableWebhook"] || false,
             isS3Enabled: res["isS3Enabled"] || false,
+            enableAddressPassword: res["enableAddressPassword"] || false,
         });
         if (openSettings.value.needAuth) {
             showAuth.value = true;
         }
-        if (openSettings.value.announcement && openSettings.value.announcement != announcement.value) {
+        if (openSettings.value.announcement
+            && !openSettings.value.fetched
+            && (openSettings.value.announcement != announcement.value
+                || openSettings.value.alwaysShowAnnouncement)
+        ) {
             announcement.value = openSettings.value.announcement;
-            message.info(announcement.value, {
-                showIcon: false,
-                duration: 0,
-                closable: true
+            notification.info({
+                content: () => {
+                    return h("div", {
+                        innerHTML: announcement.value
+                    });
+                }
             });
         }
     } catch (error) {
@@ -134,6 +145,19 @@ const getUserSettings = async (message) => {
         if (!userJwt.value) return;
         const res = await api.fetch("/user_api/settings")
         Object.assign(userSettings.value, res)
+        // auto refresh user jwt
+        if (userSettings.value.new_user_token) {
+            try {
+                await api.fetch("/user_api/settings", {
+                    userJwt: userSettings.value.new_user_token,
+                })
+                userJwt.value = userSettings.value.new_user_token;
+                console.log("User JWT updated successfully");
+            }
+            catch (error) {
+                console.error("Failed to update user JWT", error);
+            }
+        }
     } catch (error) {
         message?.error(error.message || "error");
     } finally {

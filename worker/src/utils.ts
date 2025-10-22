@@ -1,6 +1,5 @@
 import { Context } from "hono";
 import { createMimeMessage } from "mimetext";
-import { HonoCustomType, UserRole } from "./types";
 
 export const getJsonObjectValue = <T = any>(
     value: string | any
@@ -32,7 +31,7 @@ export const getJsonSetting = async <T = any>(
     try {
         return JSON.parse(value) as T;
     } catch (e) {
-        console.error(`GetJsonSetting: Failed to parse ${key}`, e);
+        console.error("GetJsonSetting: Failed to parse setting value", e);
     }
     return null;
 }
@@ -46,7 +45,7 @@ export const getSetting = async (
         ).bind(key).first<string>("value");
         return value;
     } catch (error) {
-        console.error(`GetSetting: Failed to get ${key}`, error);
+        console.error("GetSetting: Failed to get setting", error);
     }
     return null;
 }
@@ -67,6 +66,15 @@ export const getStringValue = (value: any): string => {
         return value;
     }
     return "";
+}
+
+export const getSplitStringListValue = (
+    value: any, demiliter: string = ","
+): string[] => {
+    const valueToSplit = getStringValue(value);
+    return valueToSplit.split(demiliter)
+        .map((item: string) => item.trim())
+        .filter((item: string) => item.length > 0);
 }
 
 export const getBooleanValue = (
@@ -154,6 +162,22 @@ export const getUserRoles = (c: Context<HonoCustomType>): UserRole[] => {
         }
     }
     return c.env.USER_ROLES;
+}
+
+export const getAnotherWorkerList = (c: Context<HonoCustomType>): AnotherWorker[] => {
+    if (!c.env.ANOTHER_WORKER_LIST) {
+        return [];
+    }
+    // check if ANOTHER_WORKER_LIST is an array, if not use json.parse
+    if (!Array.isArray(c.env.ANOTHER_WORKER_LIST)) {
+        try {
+            return JSON.parse(c.env.ANOTHER_WORKER_LIST);
+        } catch (e) {
+            console.error("Failed to parse ANOTHER_WORKER_LIST", e);
+            return [];
+        }
+    }
+    return c.env.ANOTHER_WORKER_LIST;
 }
 
 export const getPasswords = (c: Context<HonoCustomType>): string[] => {
@@ -270,4 +294,35 @@ export const checkUserPassword = (password: string) => {
         throw new Error("Invalid password")
     }
     return true;
+}
+
+export const hashPassword = async (password: string): Promise<string> => {
+    // use crypto to hash password
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+    const hashArray = Array.from(new Uint8Array(digest));
+    return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export default {
+    getJsonObjectValue,
+    getSetting,
+    saveSetting,
+    getStringValue,
+    getSplitStringListValue,
+    getBooleanValue,
+    getIntValue,
+    getStringArray,
+    getDefaultDomains,
+    getDomains,
+    getUserRoles,
+    getAnotherWorkerList,
+    getPasswords,
+    getAdminPasswords,
+    getEnvStringList,
+    sendAdminInternalMail,
+    checkCfTurnstile,
+    checkUserPassword,
+    getJsonSetting,
+    getJsonValue: getJsonObjectValue,
+    getStringList: getStringArray
 }
